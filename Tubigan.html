@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tubigan Online 💧</title>
+    <style>
+        body { font-family: Arial; background-color: #e0f7fa; text-align: center; padding: 20px;}
+        h1, h2 { color: #00796b; }
+        input, button { padding: 10px; margin: 5px; font-size: 16px; }
+        .hidden { display: none; }
+        .order { margin-top: 20px; font-size: 18px; color: #004d40; }
+        textarea { width: 80%; height: 250px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Page -->
+    <div id="loginPage">
+        <h1>Welcome to TUBIGAN Online 💧</h1>
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username"><br>
+        <input type="password" id="password" placeholder="Password"><br>
+        <button onclick="login()">Login</button>
+        <p id="loginError" style="color:red;"></p>
+    </div>
+
+    <!-- Order Page -->
+    <div id="orderPage" class="hidden">
+        <h1>Order Your Water</h1>
+        <button onclick="addToCart('Mineral Water (1L)', 20)">Mineral Water (1L) - ₱20</button>
+        <button onclick="addToCart('Mineral Water (5L)', 80)">Mineral Water (5L) - ₱80</button>
+        <button onclick="addToCart('Alkaline Water (1L)', 25)">Alkaline Water (1L) - ₱25</button>
+        <button onclick="addToCart('Alkaline Water (5L)', 100)">Alkaline Water (5L) - ₱100</button>
+        <button onclick="addToCart('Sparkling Water (350ml)', 30)">Sparkling Water (350ml) - ₱30</button>
+        <div class="order" id="cartSummary"></div>
+
+        <h3>Have a promo code?</h3>
+        <input type="text" id="promoCode" placeholder="Enter promo code">
+        <button onclick="applyPromo()">Apply</button>
+        <p id="promoMessage" style="color:green;"></p>
+
+        <button onclick="checkout()">Checkout</button>
+        <button onclick="resetCart()">Reset Cart 🔄</button>
+    </div>
+
+    <!-- Checkout Page -->
+    <div id="checkoutPage" class="hidden">
+        <h1>Checkout 💧</h1>
+        <div id="finalSummary"></div>
+        <h2>Choose Payment Method</h2>
+        <button onclick="pay('Cash')">Cash 💵</button>
+        <button onclick="pay('GCash')">GCash 📱</button>
+        <button onclick="pay('Maya')">Maya 📱</button>
+    </div>
+
+    <!-- Thank You Page -->
+    <div id="thankYouPage" class="hidden">
+        <h1>Thank you for ordering at TUBIGAN! 💧</h1>
+        <p id="paymentInfo"></p>
+        <button onclick="goHome()">Back to Home</button>
+    </div>
+
+    <!-- Admin Page -->
+    <div id="adminPage" class="hidden">
+        <h1>Admin View - All Orders 📝</h1>
+        <textarea id="allOrders" readonly></textarea><br>
+        <button onclick="exportOrders()">Export Orders (txt) 💾</button>
+        <button onclick="goHome()">Back to Home</button>
+    </div>
+
+    <script>
+        // Hardcoded credentials
+        const user = "user";
+        const pass = "1234";
+        const adminUser = "admin";
+        const adminPass = "admin123";
+
+        // Cart & Orders
+        let cart = [];
+        let total = 0;
+        let orders = [];
+        let discount = 0;
+
+        // Promo codes
+        const promoCodes = {
+            "TUBIG10": {type: "fixed", value: 10},      // ₱10 discount
+            "TUBIG20P": {type: "percent", value: 20}   // 20% discount
+        };
+
+        function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            if(username === adminUser && password === adminPass){
+                document.getElementById("loginPage").classList.add("hidden");
+                showAdmin();
+            } else if(username === user && password === pass){
+                document.getElementById("loginPage").classList.add("hidden");
+                document.getElementById("orderPage").classList.remove("hidden");
+            } else {
+                document.getElementById("loginError").innerText = "Invalid username or password!";
+            }
+        }
+
+        function addToCart(item, price){
+            cart.push({item, price});
+            total += price;
+            updateCartSummary();
+        }
+
+        function updateCartSummary(){
+            let summary = "Your Cart:<br>";
+            cart.forEach((c, i) => {
+                summary += `${i+1}. ${c.item} - ₱${c.price}<br>`;
+            });
+            summary += `<b>Total: ₱${applyDiscount(total)}</b>`;
+            document.getElementById("cartSummary").innerHTML = summary;
+        }
+
+        function resetCart(){
+            cart = [];
+            total = 0;
+            discount = 0;
+            document.getElementById("promoCode").value = "";
+            document.getElementById("promoMessage").innerText = "";
+            updateCartSummary();
+        }
+
+        function applyPromo(){
+            const code = document.getElementById("promoCode").value.trim().toUpperCase();
+            if(promoCodes[code]){
+                if(promoCodes[code].type === "fixed"){
+                    discount = promoCodes[code].value;
+                    document.getElementById("promoMessage").innerText = `Promo applied! ₱${discount} discount ✅`;
+                } else if(promoCodes[code].type === "percent"){
+                    discount = Math.round(total * promoCodes[code].value / 100);
+                    document.getElementById("promoMessage").innerText = `Promo applied! ${promoCodes[code].value}% discount ✅`;
+                }
+            } else {
+                discount = 0;
+                document.getElementById("promoMessage").innerText = "Invalid promo code ❌";
+            }
+            updateCartSummary();
+        }
+
+        function applyDiscount(amount){
+            return amount - discount;
+        }
+
+        function checkout(){
+            if(cart.length === 0){
+                alert("Your cart is empty!");
+                return;
+            }
+            document.getElementById("orderPage").classList.add("hidden");
+            document.getElementById("checkoutPage").classList.remove("hidden");
+
+            let summary = "Your Order:<br>";
+            cart.forEach((c, i) => {
+                summary += `${i+1}. ${c.item} - ₱${c.price}<br>`;
+            });
+            summary += `<b>Total: ₱${applyDiscount(total)}</b>`;
+            document.getElementById("finalSummary").innerHTML = summary;
+        }
+
+        function pay(method){
+            const dateTime = new Date().toLocaleString();
+            let orderText = `Order #${orders.length + 1} - ${dateTime}\n`;
+            cart.forEach((c, i) => {
+                orderText += `${i+1}. ${c.item} - ₱${c.price}\n`;
+            });
+            orderText += `Discount: ₱${discount}\n`;
+            orderText += `Total: ₱${applyDiscount(total)}\nPayment: ${method}\n\n`;
+            orders.push(orderText);
+
+            // Show thank you page
+            document.getElementById("checkoutPage").classList.add("hidden");
+            document.getElementById("thankYouPage").classList.remove("hidden");
+            document.getElementById("paymentInfo").innerText = `You chose ${method} as your payment method.`;
+
+            // Reset cart
+            cart = [];
+            total = 0;
+            discount = 0;
+
+            // Auto-refresh admin view
+            if(!document.getElementById("adminPage").classList.contains("hidden")){
+                document.getElementById("allOrders").value = orders.join("\n");
+            }
+        }
+
+        function goHome(){
+            document.getElementById("thankYouPage").classList.add("hidden");
+            document.getElementById("adminPage").classList.add("hidden");
+            document.getElementById("orderPage").classList.remove("hidden");
+            updateCartSummary();
+        }
+
+        function showAdmin(){
+            document.getElementById("adminPage").classList.remove("hidden");
+            document.getElementById("allOrders").value = orders.join("\n");
+
+            // Auto-refresh every 2 seconds
+            setInterval(() => {
+                document.getElementById("allOrders").value = orders.join("\n");
+            }, 2000);
+        }
+
+        function exportOrders(){
+            const blob = new Blob([orders.join("\n")], {type: "text/plain"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "Tubigan_Orders.txt";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+
+</body>
+</html>
